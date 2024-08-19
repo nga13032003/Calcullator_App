@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CalculatorFilled, DiffFilled, HomeFilled } from '@ant-design/icons';
-import { Menu } from 'antd';
+import { CalculatorFilled, DiffFilled, HomeFilled, MenuFoldOutlined, MenuUnfoldOutlined } from '@ant-design/icons';
+import { Button, Menu } from 'antd';
+import '../assets/styles/Calculator.css'; // Import your CSS file
 
 const items = [
   {
@@ -53,7 +54,19 @@ const items = [
 
 const Sidebar = () => {
   const [current, setCurrent] = useState('home');
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsCollapsed(window.innerWidth <= 768);
+    };
+
+    window.addEventListener('resize', handleResize);
+    handleResize(); 
+
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const onClick = (e) => {
     setCurrent(e.key);
@@ -64,14 +77,24 @@ const Sidebar = () => {
     }
   };
 
+  const toggleCollapsed = () => {
+    setIsCollapsed(!isCollapsed);
+  };
+
   return (
-    <Menu
-      onClick={onClick}
-      selectedKeys={[current]}
-      mode="vertical"
-      items={items}
-      style={{ width: 256, height: '100vh', position: 'fixed', top: 0, left: 0 }}
-    />
+    <div style={{ width: isCollapsed ? 80 : 256 }}>
+      <Button type="primary" onClick={toggleCollapsed} style={{ marginBottom: 16 }}>
+        {isCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+      </Button>
+      <Menu
+        onClick={onClick}
+        selectedKeys={[current]}
+        mode="inline"
+        inlineCollapsed={isCollapsed}
+        items={items}
+        className={`sidebar ${isCollapsed ? 'sidebar-collapsed' : ''}`}
+      />
+    </div>
   );
 };
 

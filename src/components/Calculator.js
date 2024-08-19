@@ -1,35 +1,42 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { evaluate } from 'mathjs';
 import Button from './Button';
 import Display from './Display';
-import './Calculator.css';
+import '../assets/styles/Calculator.css';
 import useResponsive from '../hooks/useResponsive';
+import { FaHistory } from 'react-icons/fa'; 
+import { BiChevronDown } from "react-icons/bi";
 
 const Calculator = () => {
-    const [input, setInput] = useState('');
-    const [result, setResult] = useState('');
+    const input = useSelector((state) => state.input);
+    const result = useSelector((state) => state.result);
+    const history = useSelector((state) => state.history);
+    const dispatch = useDispatch();
     const { width } = useResponsive();
+    const [showHistory, setShowHistory] = useState(false);
 
     const handleButtonClick = useCallback((value) => {
-        setInput(prevInput => prevInput + value);
-    }, []);
+        dispatch({ type: 'SET_INPUT', payload: input + value });
+    }, [dispatch, input]);
 
     const handleClear = useCallback(() => {
-        setInput('');
-        setResult('');
-    }, []);
+        dispatch({ type: 'CLEAR' });
+    }, [dispatch]);
 
     const handleDelete = useCallback(() => {
-        setInput(prevInput => prevInput.slice(0, -1));
-    }, []);
+        dispatch({ type: 'SET_INPUT', payload: input.slice(0, -1) });
+    }, [dispatch, input]);
 
     const handleCalculate = useCallback(() => {
         try {
-            setResult(evaluate(input));
+            const evaluatedResult = evaluate(input);
+            dispatch({ type: 'SET_RESULT', payload: evaluatedResult });
+            dispatch({ type: 'ADD_TO_HISTORY', payload: `${input} = ${evaluatedResult}` });
         } catch (error) {
-            setResult('Error');
+            dispatch({ type: 'SET_RESULT', payload: 'Error' });
         }
-    }, [input]);
+    }, [dispatch, input]);
 
     const handleSpecialOperation = useCallback((operation) => {
         let currentInput = input;
@@ -52,68 +59,86 @@ const Calculator = () => {
             default:
                 break;
         }
-        setInput(currentInput);
-    }, [input]);
-
-    const handleKeyPress = useCallback((event) => {
-        const key = event.key;
-        if (!isNaN(key) || ['+', '-', '*', '/', '.', '%'].includes(key)) {
-            handleButtonClick(key);
-        } else if (key === 'Enter') {
-            handleCalculate();
-        } else if (key === 'Backspace') {
-            handleDelete();
-        } else if (key === 'Escape') {
-            handleClear();
-        } else if (key === '^') {
-            handleSpecialOperation('x²');
-        }
-    }, [handleButtonClick, handleCalculate, handleDelete, handleClear, handleSpecialOperation]);
+        dispatch({ type: 'SET_INPUT', payload: currentInput });
+    }, [dispatch, input]);
 
     useEffect(() => {
-        window.addEventListener('keydown', handleKeyPress);
-        return () => {
-            window.removeEventListener('keydown', handleKeyPress);
+        const handleKeyPress = (e) => {
+            if (/[0-9+\-*/.]/.test(e.key)) {
+                handleButtonClick(e.key);
+            } else if (e.key === 'Enter') {
+                handleCalculate();
+            } else if (e.key === 'Backspace') {
+                handleDelete();
+            } else if (e.key.toLowerCase() === 'c') {
+                handleClear();
+            }
         };
-    }, [handleKeyPress]);
 
-    const buttons = useMemo(() => [
-        '1', '2', '3', '+',
-        '4', '5', '6', '-',
-        '7', '8', '9', '*',
-        '0', '/', '%', '1/x',
-        'sin', 'cos', 'tan', 'cot',
-        '.', '√', 'x²', '=',
-        'CE', 'C'
-    ], []);
-
-    const renderButton = (button) => {
-        switch (button) {
-            case 'C':
-                return <Button key={button} onClick={handleClear} className="clear-button">{button}</Button>;
-            case 'CE':
-                return <Button key={button} onClick={handleDelete} className="delete-button">{button}</Button>;
-            case '=':
-                return <Button key={button} onClick={handleCalculate} className="equals-button">{button}</Button>;
-            case '1/x':
-            case '√':
-            case 'x²':
-            case 'sin':
-            case 'cos':
-            case 'tan':
-            case 'cot':
-                return <Button key={button} onClick={() => handleSpecialOperation(button)}>{button}</Button>;
-            default:
-                return <Button key={button} onClick={() => handleButtonClick(button)}>{button}</Button>;
-        }
-    };
+        window.addEventListener('keydown', handleKeyPress);
+        return () => window.removeEventListener('keydown', handleKeyPress);
+    }, [handleButtonClick, handleCalculate, handleClear, handleDelete]);
 
     return (
         <div className={`calculator p-4 md:p-8 ${width < 768 ? 'bg-gray-100' : 'bg-gray-200'} rounded-lg shadow-md max-w-md mx-auto`}>
             <Display input={input} result={result} />
-            <div className="buttons">
-                {buttons.map(button => renderButton(button))}
-            </div>
+            {!showHistory && (
+                <div className="buttons">
+                    {['1', '2', '3', '+', '4', '5', '6', '-', '7', '8', '9', '*', '0', '/', '%', '1/x', 'sin', 'cos', 'tan', 'cot', '.', '√', 'x²', '=', 'CE', 'C']
+                        .map(button => (
+                            <Button
+                                key={button}
+                                onClick={() => {
+                                    switch (button) {
+                                        case 'C':
+                                            handleClear();
+                                            break;
+                                        case 'CE':
+                                            handleDelete();
+                                            break;
+                                        case '=':
+                                            handleCalculate();
+                                            break;
+                                        case '1/x':
+                                        case '√':
+                                        case 'x²':
+                                        case 'sin':
+                                        case 'cos':
+                                        case 'tan':
+                                        case 'cot':
+                                            handleSpecialOperation(button);
+                                            break;
+                                        default:
+                                            handleButtonClick(button);
+                                    }
+                                }}
+                            >
+                                {button}
+                            </Button>
+                        ))}
+                        <Button onClick={() => {
+                            console.log('Toggling history:', !showHistory); 
+                            setShowHistory(!showHistory);
+                        }} className="history-toggle-button">
+                            {showHistory ? <BiChevronDown /> : <FaHistory />}
+                        </Button>
+
+                </div>
+            )}
+
+            {showHistory && (
+                <div className="history">
+                    {history.length ? (
+                        history.map((entry, index) => (
+                            <div key={index} className="history-entry">
+                                {entry}
+                            </div>
+                        ))
+                    ) : (
+                        <div className="no-history">No history available.</div>
+                    )}
+                </div>
+            )}
         </div>
     );
 };
