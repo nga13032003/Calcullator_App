@@ -1,19 +1,161 @@
-
 import React from 'react';
-import './assets/styles/home.css'; 
+import { DownOutlined } from '@ant-design/icons';
+import { Badge, Dropdown, Space, Table } from 'antd';
 
-const Home = () => {
+const Budget = () => {
+  const items = [
+    {
+      key: '1',
+      label: 'Action 1',
+    },
+    {
+      key: '2',
+      label: 'Action 2',
+    },
+  ];
+
+  const expandedRowRender = () => {
+    const columns = [
+      {
+        title: 'Date',
+        dataIndex: 'date',
+        key: 'date',
+      },
+      {
+        title: 'Name',
+        dataIndex: 'name',
+        key: 'name',
+      },
+      {
+        title: 'Status',
+        key: 'status',
+        render: () => <Badge status="success" text="Finished" />,
+      },
+      {
+        title: 'Upgrade Status',
+        dataIndex: 'upgradeNum',
+        key: 'upgradeNum',
+      },
+      {
+        title: 'Action',
+        key: 'operation',
+        render: () => (
+          <Space size="middle">
+            <a href="#pause">Pause</a>
+            <a href="#stop">Stop</a>
+            <Dropdown
+              overlay={
+                <Space direction="vertical">
+                  {items.map((item) => (
+                    <a key={item.key} href={`#${item.label.toLowerCase().replace(/\s+/g, '-')}`}>
+                      {item.label}
+                    </a>
+                  ))}
+                </Space>
+              }
+            >
+              <a href="#more">
+                More <DownOutlined />
+              </a>
+            </Dropdown>
+          </Space>
+        ),
+      },
+    ];
+
+    const data = [];
+    for (let i = 0; i < 3; ++i) {
+      data.push({
+        key: i.toString(),
+        date: '2014-12-24 23:12:00',
+        name: 'This is production name',
+        upgradeNum: 'Upgraded: 56',
+      });
+    }
+    return <Table columns={columns} dataSource={data} pagination={false} />;
+  };
+
+  const columns = [
+    {
+      title: 'Name',
+      dataIndex: 'name',
+      key: 'name',
+    },
+    {
+      title: 'Platform',
+      dataIndex: 'platform',
+      key: 'platform',
+    },
+    {
+      title: 'Version',
+      dataIndex: 'version',
+      key: 'version',
+    },
+    {
+      title: 'Upgraded',
+      dataIndex: 'upgradeNum',
+      key: 'upgradeNum',
+    },
+    {
+      title: 'Creator',
+      dataIndex: 'creator',
+      key: 'creator',
+    },
+    {
+      title: 'Date',
+      dataIndex: 'createdAt',
+      key: 'createdAt',
+    },
+    {
+      title: 'Action',
+      key: 'operation',
+      render: () => <a href="#publish">Publish</a>,
+    },
+  ];
+
+  const data = [];
+  for (let i = 0; i < 3; ++i) {
+    data.push({
+      key: i.toString(),
+      name: 'Screen',
+      platform: 'iOS',
+      version: '10.3.4.5654',
+      upgradeNum: 500,
+      creator: 'Jack',
+      createdAt: '2014-12-24 23:12:00',
+    });
+  }
+
   return (
-    <div className="home-container">
-      <h1 className="home-title">Welcome to the Calculator App!</h1>
-      <p className="home-description">
-        This application allows you to perform various calculations with ease.
-      </p>
-      <p className="home-instructions">
-        Use the sidebar to navigate between different features.
-      </p>
+    <div>
+      <Table
+        columns={columns}
+        expandable={{
+          expandedRowRender,
+          defaultExpandedRowKeys: ['0'],
+        }}
+        dataSource={data}
+      />
+      <Table
+        columns={columns}
+        expandable={{
+          expandedRowRender,
+          defaultExpandedRowKeys: ['0'],
+        }}
+        dataSource={data}
+        size="middle"
+      />
+      <Table
+        columns={columns}
+        expandable={{
+          expandedRowRender,
+          defaultExpandedRowKeys: ['0'],
+        }}
+        dataSource={data}
+        size="small"
+      />
     </div>
   );
 };
 
-export default Home;
+export default Budget;

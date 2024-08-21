@@ -7,6 +7,7 @@ import '../assets/styles/Calculator.css';
 import useResponsive from '../hooks/useResponsive';
 import { FaHistory } from 'react-icons/fa'; 
 import { BiChevronDown } from "react-icons/bi";
+import { setInput, setResult, clear } from '../redux/actions';
 
 const Calculator = () => {
     const input = useSelector((state) => state.input);
@@ -17,24 +18,24 @@ const Calculator = () => {
     const [showHistory, setShowHistory] = useState(false);
 
     const handleButtonClick = useCallback((value) => {
-        dispatch({ type: 'SET_INPUT', payload: input + value });
+        dispatch(setInput(input + value));
     }, [dispatch, input]);
 
     const handleClear = useCallback(() => {
-        dispatch({ type: 'CLEAR' });
+        dispatch(clear());
     }, [dispatch]);
 
     const handleDelete = useCallback(() => {
-        dispatch({ type: 'SET_INPUT', payload: input.slice(0, -1) });
+        dispatch(setInput(input.slice(0, -1)));
     }, [dispatch, input]);
 
     const handleCalculate = useCallback(() => {
         try {
             const evaluatedResult = evaluate(input);
-            dispatch({ type: 'SET_RESULT', payload: evaluatedResult });
+            dispatch(setResult(evaluatedResult));
             dispatch({ type: 'ADD_TO_HISTORY', payload: `${input} = ${evaluatedResult}` });
         } catch (error) {
-            dispatch({ type: 'SET_RESULT', payload: 'Error' });
+            dispatch(setResult('Error'));
         }
     }, [dispatch, input]);
 
@@ -59,7 +60,7 @@ const Calculator = () => {
             default:
                 break;
         }
-        dispatch({ type: 'SET_INPUT', payload: currentInput });
+        dispatch(setInput(currentInput));
     }, [dispatch, input]);
 
     useEffect(() => {
@@ -116,13 +117,9 @@ const Calculator = () => {
                                 {button}
                             </Button>
                         ))}
-                        <Button onClick={() => {
-                            console.log('Toggling history:', !showHistory); 
-                            setShowHistory(!showHistory);
-                        }} className="history-toggle-button">
+                        <Button onClick={() => setShowHistory(!showHistory)} className="history-toggle-button">
                             {showHistory ? <BiChevronDown /> : <FaHistory />}
                         </Button>
-
                 </div>
             )}
 

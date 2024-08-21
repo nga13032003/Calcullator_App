@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
 import Calculator from './components/Calculator';
+import Budget from './components/home';
 import { Layout } from 'antd';
 import './App.css'; 
 
@@ -19,7 +20,7 @@ function App() {
           <Content className="site-content">
             <Routes>
               <Route path="/calculator" element={<Calculator />} />
-              <Route path="/" element={<h1>Home Page</h1>} />
+              <Route path="/" element={<Budget />} />
             </Routes>
           </Content>
           <Footer className="site-footer">
