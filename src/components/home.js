@@ -1,161 +1,134 @@
-import React from 'react';
-import { DownOutlined } from '@ant-design/icons';
-import { Badge, Dropdown, Space, Table } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Table, Input, Popover, Button } from 'antd';
 
-const Budget = () => {
-  const items = [
-    {
-      key: '1',
-      label: 'Action 1',
-    },
-    {
-      key: '2',
-      label: 'Action 2',
-    },
-  ];
+const defaultMonths = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
-  const expandedRowRender = () => {
+const BudgetBuilder = () => {
+    const [data, setData] = useState([]);
+    const [focusedCell, setFocusedCell] = useState({ row: 0, col: 0 });
+
+    // Khởi tạo dữ liệu ban đầu
+    useEffect(() => {
+        const initialData = [
+            { category: 'Income', values: Array(12).fill(0) },
+            { category: 'Expenses', values: Array(12).fill(0) },
+            { category: 'Profit/Loss', values: Array(12).fill(0) }
+        ];
+        setData(initialData);
+    }, []);
+
+    // Hàm xử lý di chuyển và cập nhật giá trị
+    const handleKeyDown = (e, rowIndex, colIndex) => {
+        const newData = [...data];
+        let { key } = e;
+
+        if (key === 'Enter' || key === 'Tab') {
+            e.preventDefault();
+            if (colIndex < defaultMonths.length - 1) {
+                setFocusedCell({ row: rowIndex, col: colIndex + 1 });
+            } else if (rowIndex < data.length - 1) {
+                setFocusedCell({ row: rowIndex + 1, col: 0 });
+            }
+        } else if (key === 'ArrowUp' && rowIndex > 0) {
+            setFocusedCell({ row: rowIndex - 1, col: colIndex });
+        } else if (key === 'ArrowDown' && rowIndex < data.length - 1) {
+            setFocusedCell({ row: rowIndex + 1, col: colIndex });
+        } else if (key === 'ArrowLeft' && colIndex > 0) {
+            setFocusedCell({ row: rowIndex, col: colIndex - 1 });
+        } else if (key === 'ArrowRight' && colIndex < defaultMonths.length - 1) {
+            setFocusedCell({ row: rowIndex, col: colIndex + 1 });
+        } else {
+            newData[rowIndex].values[colIndex] = parseInt(e.key, 10) || 0;
+            setData(newData);
+            calculateProfitLoss(newData);
+        }
+    };
+
+    // Hàm tính toán lợi nhuận/lỗ
+    const calculateProfitLoss = (updatedData) => {
+        const newData = updatedData.map((row, rowIndex) => {
+            if (row.category === 'Profit/Loss') {
+                row.values = row.values.map((val, colIndex) => {
+                    const income = updatedData.find(r => r.category === 'Income').values[colIndex];
+                    const expenses = updatedData.find(r => r.category === 'Expenses').values[colIndex];
+                    return income - expenses;
+                });
+            }
+            return row;
+        });
+        setData(newData);
+    };
+
+    // Hàm cập nhật giá trị ô
+    const handleCellChange = (e, rowIndex, colIndex) => {
+        const newData = [...data];
+        newData[rowIndex].values[colIndex] = parseFloat(e.target.value) || 0;
+        setData(newData);
+        calculateProfitLoss(newData);
+    };
+
+    // Hàm xóa dòng
+    const deleteRow = (rowIndex) => {
+        const newData = [...data];
+        newData.splice(rowIndex, 1);
+        setData(newData);
+    };
+
+    // Hàm áp dụng giá trị cho tất cả các ô trong cùng một hàng
+    const applyToAll = (rowIndex, colIndex) => {
+        const value = data[rowIndex].values[colIndex];
+        const newData = [...data];
+        newData[rowIndex].values = newData[rowIndex].values.map(() => value);
+        setData(newData);
+        calculateProfitLoss(newData);
+    };
+
+    // Cột của bảng
     const columns = [
-      {
-        title: 'Date',
-        dataIndex: 'date',
-        key: 'date',
-      },
-      {
-        title: 'Name',
-        dataIndex: 'name',
-        key: 'name',
-      },
-      {
-        title: 'Status',
-        key: 'status',
-        render: () => <Badge status="success" text="Finished" />,
-      },
-      {
-        title: 'Upgrade Status',
-        dataIndex: 'upgradeNum',
-        key: 'upgradeNum',
-      },
-      {
-        title: 'Action',
-        key: 'operation',
-        render: () => (
-          <Space size="middle">
-            <a href="#pause">Pause</a>
-            <a href="#stop">Stop</a>
-            <Dropdown
-              overlay={
-                <Space direction="vertical">
-                  {items.map((item) => (
-                    <a key={item.key} href={`#${item.label.toLowerCase().replace(/\s+/g, '-')}`}>
-                      {item.label}
-                    </a>
-                  ))}
-                </Space>
-              }
-            >
-              <a href="#more">
-                More <DownOutlined />
-              </a>
-            </Dropdown>
-          </Space>
-        ),
-      },
+        {
+            title: 'Category',
+            dataIndex: 'category',
+            key: 'category',
+            render: (text, record, rowIndex) => (
+                <div>
+                    {text} {['Income', 'Expenses'].includes(text) && (
+                        <Button type="link" danger onClick={() => deleteRow(rowIndex)}>Delete</Button>
+                    )}
+                </div>
+            ),
+        },
+        ...defaultMonths.map((month, colIndex) => ({
+            title: month,
+            dataIndex: `month-${colIndex}`,
+            key: `month-${colIndex}`,
+            render: (text, record, rowIndex) => {
+                const isFocused = focusedCell.row === rowIndex && focusedCell.col === colIndex;
+                return (
+                    <Popover
+                        content={<Button onClick={() => applyToAll(rowIndex, colIndex)}>Apply to all</Button>}
+                        trigger="contextMenu"
+                    >
+                        <Input
+                            autoFocus={isFocused}
+                            value={data[rowIndex].values[colIndex]}
+                            onChange={(e) => handleCellChange(e, rowIndex, colIndex)}
+                            onKeyDown={(e) => handleKeyDown(e, rowIndex, colIndex)}
+                        />
+                    </Popover>
+                );
+            },
+        }))
     ];
 
-    const data = [];
-    for (let i = 0; i < 3; ++i) {
-      data.push({
-        key: i.toString(),
-        date: '2014-12-24 23:12:00',
-        name: 'This is production name',
-        upgradeNum: 'Upgraded: 56',
-      });
-    }
-    return <Table columns={columns} dataSource={data} pagination={false} />;
-  };
-
-  const columns = [
-    {
-      title: 'Name',
-      dataIndex: 'name',
-      key: 'name',
-    },
-    {
-      title: 'Platform',
-      dataIndex: 'platform',
-      key: 'platform',
-    },
-    {
-      title: 'Version',
-      dataIndex: 'version',
-      key: 'version',
-    },
-    {
-      title: 'Upgraded',
-      dataIndex: 'upgradeNum',
-      key: 'upgradeNum',
-    },
-    {
-      title: 'Creator',
-      dataIndex: 'creator',
-      key: 'creator',
-    },
-    {
-      title: 'Date',
-      dataIndex: 'createdAt',
-      key: 'createdAt',
-    },
-    {
-      title: 'Action',
-      key: 'operation',
-      render: () => <a href="#publish">Publish</a>,
-    },
-  ];
-
-  const data = [];
-  for (let i = 0; i < 3; ++i) {
-    data.push({
-      key: i.toString(),
-      name: 'Screen',
-      platform: 'iOS',
-      version: '10.3.4.5654',
-      upgradeNum: 500,
-      creator: 'Jack',
-      createdAt: '2014-12-24 23:12:00',
-    });
-  }
-
-  return (
-    <div>
-      <Table
-        columns={columns}
-        expandable={{
-          expandedRowRender,
-          defaultExpandedRowKeys: ['0'],
-        }}
-        dataSource={data}
-      />
-      <Table
-        columns={columns}
-        expandable={{
-          expandedRowRender,
-          defaultExpandedRowKeys: ['0'],
-        }}
-        dataSource={data}
-        size="middle"
-      />
-      <Table
-        columns={columns}
-        expandable={{
-          expandedRowRender,
-          defaultExpandedRowKeys: ['0'],
-        }}
-        dataSource={data}
-        size="small"
-      />
-    </div>
-  );
+    return (
+        <div>
+            <Table
+                columns={columns}
+                dataSource={data.map((item, index) => ({ key: index, ...item }))}
+                pagination={false}
+            />
+        </div>
+    );
 };
 
-export default Budget;
+export default BudgetBuilder;
